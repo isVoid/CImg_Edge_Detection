@@ -31,7 +31,7 @@ int thres_lo = 20;
 int thres_hi = 40;
 
 //Hough Parameter
-int voting_thres = 128;
+int voting_thres = 192;
 float resize_fac = 8;
 float thres_fac = 0.7;
 double PI = 3.1415;
@@ -292,12 +292,12 @@ void hough_line() {
 
 int main(int argc, char** argv) {
 
-	char* original_path = "./data/4.jpg";
-	char* canny_path = "./data/4c.jpg";
+	char* original_path = "./data/2.jpg";
+	char* canny_path = "./data/2c.jpg";
 
 	img.assign(original_path);
-	resized = img.resize(img._width / resize_fac, img._height / resize_fac);
-	Canny c(resized);
+	// resized = img.resize(img._width / resize_fac, img._height / resize_fac);
+	// Canny c(resized);
 
 	cny.assign(canny_path); 
 	result.assign(img);
