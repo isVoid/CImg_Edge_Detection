@@ -10,7 +10,7 @@
 
 #define cimg_use_jpeg
 #include "CImg.h"
-#include "canny.h"
+// #include "canny.h"
 
 #define HOUGH_SPACE_SIZE 600
 #define hss HOUGH_SPACE_SIZE
@@ -297,17 +297,18 @@ int main(int argc, char** argv) {
 	char* canny_path = "./data/2c.jpg";
 
 	img.assign(original_path);
-	resized = img.resize(img._width / resize_fac, img._height / resize_fac);
-	canny c(resized);
+	// resized = img.resize(img._width / resize_fac, img._height / resize_fac);
+	// canny c(resized);
 
-	int gfs = 5;
-	double g_sig = 1.5;
-	int thres_lo = 40;
-	int thres_hi = 55;
+	// int gfs = 5;
+	// double g_sig = 1.5;
+	// int thres_lo = 40;
+	// int thres_hi = 55;
 
-	// cny.assign(canny_path); 
-	cny = c.process(gfs, g_sig, thres_lo, thres_hi);
-	cny.display();
+
+	// cny = c.process(gfs, g_sig, thres_lo, thres_hi);
+	// cny.display();
+	cny.assign(canny_path); 
 	result.assign(img);
 
 	hough_line();
