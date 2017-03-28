@@ -42,7 +42,13 @@ int voting_thres = 64;
 float thres_fac = 0.4;
 int filter_thres = 200;
 
-
+/*
+*	A Point in Hough Param Space
+*	Properties:
+*	Rho, Integer, from -rho_max to rho_max 
+*	Theta, Float, from 0 to 2PI
+*	Vote_count, Integer, Positive
+*/
 struct param_space_point {
 	int rho = 0;
 	double theta = 0;
@@ -52,6 +58,13 @@ struct param_space_point {
 		rho = r; theta = t; vote = v;
 	}
 };
+
+/*
+*	A Point in Image Space
+*	Properties:
+*	x: Integer, from 0 to image.width
+*	y: Integer, from 0 to image.height
+*/
 
 struct point
 {
@@ -138,6 +151,14 @@ CImg<unsigned char> histgramEq_hsi(CImg<unsigned char> in) {
 	return out;
 }
 
+/*
+*	plotPoint function: A function to plot points on the image
+*	@param
+*	x: x coordinate
+*	y: y coordinate
+*	img: image to plot on
+*/
+
 void plotPoint(int x, int y, CImg<unsigned char>& img) {
 
 	int r = 30;
@@ -163,6 +184,14 @@ void plotPoint(int x, int y, CImg<unsigned char>& img) {
 
 }
 
+/*
+*	plotLine function: A function to plot line on the image, using full image scan 
+*	and hough param formula as line formula, O(wh)
+*	@param
+*	filtered: a vector of hough prameter space points, each represents a line in image space
+*	result: the result image to plot on
+*/
+
 void plotLine(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 
 	for (int i = 0; i < filtered.size(); i++) {
@@ -183,6 +212,14 @@ void plotLine(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 
 	}
 }
+
+/*
+*	plotLineFast function: A function to plot line faster (HAS NOT BEEN TESTED YET!!!)
+*	Compute Slope-Intercept Form from Hough Param Formula, scan image horizontally once. O(w)
+*	@param
+*	filtered: a vector of hough prameter space points, each represents a line in image space
+*	result: the result image to plot on
+*/
 
 void plotLineFast(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 
@@ -237,6 +274,14 @@ void plotLineFast(vector<param_space_point> filtered, CImg<unsigned char>& resul
 
 }
 
+/*
+*	localFiltering: A naiive implementation of local point filtering, choose the first point
+*	encountered in the local area. Going to be replaced by K-means classification
+*	@param
+*	v: list of hough space points
+*	filtered: list of filtered points
+*/
+
 void localFiltering(vector<param_space_point> v, vector<param_space_point>& filtered) {
 
 	for (int i = 0; i < v.size(); i++) {
@@ -266,6 +311,11 @@ void localFiltering(vector<param_space_point> v, vector<param_space_point>& filt
 
 }
 
+/*
+*	computeIntersects: Computing the intersects of different lines and the points in a vector
+*	filtered: hough space points, each represents a line in image space
+*	intersects: list of intersects
+*/
 void computeIntersects(vector<param_space_point> filtered, vector<point>& intersects) {
 
 for (int i = 0; i < filtered.size(); i++) {
@@ -301,6 +351,16 @@ vector<param_space_point> v;
 vector<param_space_point> v_debug;
 vector<param_space_point> filtered;
 vector<point> intersects;
+
+/*
+*	hough_line: hough line detection function
+*	Step:
+*	1. Traverse Canny image, vote on hough space
+*	2. Traverse hough space, threshold usable points
+*	3. Perform local filtering, reduce duplicates
+*	4. Compute intersects of lines
+*	5. Plot Lines and Intersect Points.
+*/
 
 void hough_line() {
 
@@ -383,20 +443,28 @@ void hough_line() {
 
 }
 
+/*
+*	Main Function: Provides input of canny and hough parameters.
+*	Parameter List, from left to right:
+*
+*	Path_Image_to_detect: string
+*	Perform_Histogram_equalization: bool(0, 1)
+*	Gaussian_filter_size: odd int
+*	Gaussian_sigma: float
+*	threshold_lower: int
+*	threshold_higher: int
+*	voting_threshold: int
+*	threshold_factor: float
+*	filtering_treshold: int
+*	Show_debug_windows: bool(0, 1)
+*	Path_Result_to_save: string
+*
+*	Sample usage: ./HOUGH_LINE "./data/5.jpg" 0 5 1.5 40 60 64 0.4 30 0 "./data/5.jpg"
+*
+*	For more information, refer to manual/report
+*/
+
 int main(int argc, char** argv) {
-
-	// char* original_path = "./data/1.jpg";
-
-	// bool do_hist_eq = true;
-
-	// gfs = 7;
-	// g_sig = 1.5;
-	// thres_lo = 55;
-	// thres_hi = 60;
-
-	// voting_thres = 192;
-	// thres_fac = 0.6;
-	// filter_thres = 142;
 
 	char* original_path = argv[1];
 	char* out_path = argv[11];
