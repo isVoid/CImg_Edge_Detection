@@ -1,0 +1,19 @@
+1.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	0 	5 	1.5 	40 		60 		64 		0.4		60
+2.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	1	7	1.5	55		60		192		0.6		142
+3.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	0	5 	1.5 	40 		60 		64 		0.6 		42
+4.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	0	5	1.5	30		55		64		0.4		200
+5.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	0 	5 	1.5 	40 		60 		64 		0.4 		150
+6.jpg
+	hist	gfs	g_sig	thres_lo	thres_hi	voting_thres	thres_fac	filter_thres
+	0 	5 	1.5 	40 		60 		64 		0.4 		120
+
