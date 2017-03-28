@@ -26,6 +26,11 @@ CImg<unsigned char> cny;
 CImg<int> hough_space;
 CImg<unsigned char> result;
 
+bool debug_disp = false;
+
+double PI = 3.1415;
+
+float resize_fac = 8;
 //Canny Parameter
 int gfs = 3;
 double g_sig = 1.0;
@@ -34,9 +39,9 @@ int thres_hi = 40;
 
 //Hough Parameter
 int voting_thres = 64;
-float resize_fac = 8;
 float thres_fac = 0.4;
-double PI = 3.1415;
+int filter_thres = 200;
+
 
 struct param_space_point {
 	int rho = 0;
@@ -61,6 +66,78 @@ struct point
 	}	
 };
 
+/*
+*	@Override
+*	getHist
+*	Calculates a normalized gray image's histogram
+*	
+*	@param:
+*	T hist[256]: An array to store the images histogram
+*	CImg<float> img: Image to calculate
+*/
+template <typename T> void getHist(T hist[256], CImg<float> img) {
+	cimg_forXY(img, x, y) {
+		hist[int(img(x,y) * 255)] += 1;
+	}
+}
+
+/*
+*	histgramEq
+*	Equalized a histogram
+*	
+*	@param:
+*	T hist[256]: A(n) (image/channel)'s histogram
+*	int size: total pixel number of the image/channel, usually w x h.
+*/
+template <typename T> void histgramEq(T hist[256], int size) {
+	
+	//Caculate cummulative density function
+	for(int i = 1; i < 256; i++) {
+		hist[i] = hist[i] + hist[i-1];
+	}
+
+	//Compute color transform function for equalization
+	for(int i = 0; i < 256; i++) {
+		hist[i] = float(hist[i]) / size;
+		hist[i] = (unsigned int)(255 * hist[i]);
+	}
+
+}
+
+/*
+*	histgramEq_hsi
+*	Histogram-equalize a color image using the intensity channel
+*	on hsi space.
+*	
+*	@param:
+*	CImg<unsigned char> in: Image to perform operation
+*
+*	@return:
+*	CImg<unsigned char>: Histogram equalized image
+*/
+CImg<unsigned char> histgramEq_hsi(CImg<unsigned char> in) {
+
+	CImg<float>in_hsi = in.get_RGBtoHSI();
+
+	int size = in._width * in._height;
+
+	float hist_i[256] = {};
+
+	CImg<float> intensity = in_hsi.get_channel(2);
+	getHist(hist_i, intensity);
+
+	histgramEq(hist_i, size);
+
+	//Applying color transform function to image
+	cimg_forXY(intensity, x, y) {
+		in_hsi.atXYZC(x,y,1,2) = hist_i[int(intensity(x,y) * 255)] / 255.0;
+	}
+
+	CImg<unsigned char> out = in_hsi.get_HSItoRGB();
+
+	return out;
+}
+
 void plotPoint(int x, int y, CImg<unsigned char>& img) {
 
 	int r = 30;
@@ -70,14 +147,8 @@ void plotPoint(int x, int y, CImg<unsigned char>& img) {
 
 	for (int i = x - r; i < x + r; i++) {
 		for (int j = y - r; j < y + r; j++) {
-			// if (x == 2248) {
-			// 	printf("%d, %d\n", i, j);
-			// }
 			if (i >= 0 && i < img._width && j >= 0 && j < img._height) {
 				if (sqrt(pow(i - x, 2) + pow(j - y, 2)) <= r) {
-					if (x == 2248) {
-						printf("Draw... i:%d, j:%d\n", i, j);
-					}
 					// printf("Draw... i:%d, j:%d\n", i, j);
 					img(i, j, 0) = 255;
 					img(i, j, 1) = 255;
@@ -178,7 +249,7 @@ void localFiltering(vector<param_space_point> v, vector<param_space_point>& filt
 			param_space_point p0 = filtered[j];
 			float dist = sqrt(pow(p.theta - p0.theta, 2) + pow((p.rho - p0.rho), 2));
 
-			if (dist < 200 ) {
+			if (dist < filter_thres ) {
 				add = false;
 			} else {
 				printf("Param dist: %f\n", dist);
@@ -283,7 +354,8 @@ void hough_line() {
 		}
 	}
 
-	hough_space.display();
+	if (debug_disp)
+		hough_space.display();
 
 	// exit(-1);
 	cout << "max: " << max << endl;
@@ -313,30 +385,63 @@ void hough_line() {
 
 int main(int argc, char** argv) {
 
-	char* original_path = "./data/2.jpg";
-	// char* canny_path = "./data/4c.jpg";
+	// char* original_path = "./data/1.jpg";
+
+	// bool do_hist_eq = true;
+
+	// gfs = 7;
+	// g_sig = 1.5;
+	// thres_lo = 55;
+	// thres_hi = 60;
+
+	// voting_thres = 192;
+	// thres_fac = 0.6;
+	// filter_thres = 142;
+
+	char* original_path = argv[1];
+	char* out_path = argv[11];
+
+	bool do_hist_eq = bool(atoi(argv[2]));
+
+	gfs = atoi(argv[3]);
+	g_sig = atof(argv[4]);
+	thres_lo = atoi(argv[5]);
+	thres_hi = atoi(argv[6]);
+
+	voting_thres = atoi(argv[7]);
+	thres_fac = atof(argv[8]);
+	filter_thres = atoi(argv[9]);
+
+	debug_disp = bool(atoi(argv[10]));
 
 	img.assign(original_path);
 	resized.assign(original_path);
 	resized.resize(resized._width / resize_fac, resized._height / resize_fac);
+
+	if (do_hist_eq) {
+		resized = histgramEq_hsi(resized);	
+	}
+
+	if (debug_disp)
+		resized.display();
 	canny c(resized);
 
-	int gfs = 5;
-	double g_sig = 1.5;
-	int thres_lo = 30;
-	int thres_hi = 55;
-
-
 	cny = c.process(gfs, g_sig, thres_lo, thres_hi);
-	cny.display();
-	// cny.assign(canny_path); 
+
+	if (debug_disp)
+		cny.display();
+
 	result.assign(img);
 
 	hough_line();
 
-	hough_space.display();
+	if (debug_disp)
+		hough_space.display();
+
 	result.display();
-	// cny.display();
+
+	result.save_jpeg(out_path);
+	printf("Result saved to ./output/\n");
 
 	return 0;
 }
