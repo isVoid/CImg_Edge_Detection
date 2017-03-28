@@ -10,7 +10,7 @@
 
 #define cimg_use_jpeg
 #include "CImg.h"
-// #include "canny.h"
+#include "canny.h"
 
 #define HOUGH_SPACE_SIZE 600
 #define hss HOUGH_SPACE_SIZE
@@ -32,9 +32,9 @@ int thres_lo = 20;
 int thres_hi = 40;
 
 //Hough Parameter
-int voting_thres = 192;
+int voting_thres = 64;
 float resize_fac = 8;
-float thres_fac = 0.7;
+float thres_fac = 0.6;
 double PI = 3.1415;
 
 struct param_space_point {
@@ -91,7 +91,7 @@ void plotLine(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 		param_space_point p = filtered[i];
 
 			cimg_forXY(result, x, y) {
-				if (abs(p.rho + x * cosf(p.theta) - y * sinf(p.theta)) < 2) {
+				if (abs(p.rho + (x/8) * cosf(p.theta) - (y/8) * sinf(p.theta)) < 2) {
 					result(x, y, 0) = 255;
 					result(x, y, 1) = 0;
 					result(x, y, 2) = 0;
@@ -225,8 +225,6 @@ void hough_line() {
 		}
 	}
 
-
-
 	printf("thres amount: %u\n", v.size());
 
 	// for (int i = 0; i < v_debug.size(); i++) {
@@ -234,60 +232,61 @@ void hough_line() {
 	// 	printf("rho: %d, theta: %f, vote: %d\n", v[i].rho, v[i].theta, v[i].vote);
 	// }
 
-	for (int i = 0; i < v.size(); i++) {
+	// for (int i = 0; i < v.size(); i++) {
 
-		bool add = true;
-		param_space_point p = v[i];
+	// 	bool add = true;
+	// 	param_space_point p = v[i];
 
-		for (int j = 0; j < filtered.size(); j++) {
+	// 	for (int j = 0; j < filtered.size(); j++) {
 
-			param_space_point p0 = filtered[j];
-			float dist = sqrt(pow(p.theta - p0.theta, 2) * 10 + pow((p.rho - p0.rho), 2));
+	// 		param_space_point p0 = filtered[j];
+	// 		float dist = sqrt(pow(p.theta - p0.theta, 2) + pow((p.rho - p0.rho), 2));
 
-			if (dist < 1300) {
-				add = false;
-			} else {
-				printf("Param dist: %f\n", dist);
-			}
-		}
+	// 		if (dist < 0 ) {
+	// 			add = false;
+	// 		} else {
+	// 			printf("Param dist: %f\n", dist);
+	// 		}
+	// 	}
 
-		if (add) {
-			filtered.insert(filtered.end(), p);
-		}
+	// 	if (add) {
+	// 		filtered.insert(filtered.end(), p);
+	// 	}
 
-	}
+	// }
 
-	printf("Filtered Param points: %d\n", filtered.size());
+	// printf("Filtered Param points: %d\n", filtered.size());
 
-	plotLine(filtered, result);
+	// plotLine(filtered, result);
+	plotLine(v, result);
 
-	for (int i = 0; i < filtered.size(); i++) {
+	// for (int i = 0; i < filtered.size(); i++) {
 
-		for (int j = i + 1; j < filtered.size(); j++) {
+	// 	for (int j = i + 1; j < filtered.size(); j++) {
 
-			param_space_point p0 = filtered[i], p1 = filtered[j];
-			float a = -cos(p0.theta), b = sin(p0.theta), e = p0.rho,
-				c = -cos(p1.theta), d = sin(p1.theta), f = p1.rho;
+	// 		param_space_point p0 = filtered[i], p1 = filtered[j];
+	// 		float a = -cos(p0.theta), b = sin(p0.theta), e = p0.rho,
+	// 			c = -cos(p1.theta), d = sin(p1.theta), f = p1.rho;
 
-			float det = (a*d-b*c);
-			if (abs(det) > 0.1) {
+	// 		float det = (a*d-b*c);
+	// 		if (abs(det) > 0.1) {
 			
-				float x = (e*d-b*f)/det;
-				float y = (a*f-e*c)/det;
+	// 			float x = (e*d-b*f)/det;
+	// 			float y = (a*f-e*c)/det;
 
-				point intersect;
-				intersect.x = int(x);
-				intersect.y = int(y);
-				plotPoint(intersect.x, intersect.y, result);
+	// 			point intersect;
+	// 			intersect.x = int(x);
+	// 			intersect.y = int(y);
+	// 			plotPoint(intersect.x, intersect.y, result);
 
-				intersects.insert(intersects.end(), intersect);
-			}
+	// 			intersects.insert(intersects.end(), intersect);
+	// 		}
 
-		}
+	// 	}
 
-	}
+	// }
 
-	printf("Intersects: %d\n", intersects.size());
+	// printf("Intersects: %d\n", intersects.size());
 
 }
 
@@ -297,23 +296,24 @@ int main(int argc, char** argv) {
 	char* canny_path = "./data/2c.jpg";
 
 	img.assign(original_path);
-	// resized = img.resize(img._width / resize_fac, img._height / resize_fac);
-	// canny c(resized);
+	resized.assign(original_path);
+	resized.resize(resized._width / resize_fac, resized._height / resize_fac);
+	canny c(resized);
 
-	// int gfs = 5;
-	// double g_sig = 1.5;
-	// int thres_lo = 40;
-	// int thres_hi = 55;
+	int gfs = 5;
+	double g_sig = 1.5;
+	int thres_lo = 40;
+	int thres_hi = 55;
 
 
-	// cny = c.process(gfs, g_sig, thres_lo, thres_hi);
-	// cny.display();
-	cny.assign(canny_path); 
+	cny = c.process(gfs, g_sig, thres_lo, thres_hi);
+	cny.display();
+	// cny.assign(canny_path); 
 	result.assign(img);
 
 	hough_line();
 
-	// hough_space.display();
+	hough_space.display();
 	result.display();
 
 	return 0;
