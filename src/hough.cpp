@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include <cmath>
 
 #define cimg_use_jpeg
@@ -34,7 +35,7 @@ int thres_hi = 40;
 //Hough Parameter
 int voting_thres = 64;
 float resize_fac = 8;
-float thres_fac = 0.7;
+float thres_fac = 0.4;
 double PI = 3.1415;
 
 struct param_space_point {
@@ -65,11 +66,18 @@ void plotPoint(int x, int y, CImg<unsigned char>& img) {
 	int r = 30;
 
 	printf("Plotting... x:%d, y:%d\n", x, y);
+	printf("w: %d, h: %d\n", img._width, img._height);
 
 	for (int i = x - r; i < x + r; i++) {
 		for (int j = y - r; j < y + r; j++) {
-			if (i >= 0 && i < img._width && j >= 0 && j < img._width) {
+			// if (x == 2248) {
+			// 	printf("%d, %d\n", i, j);
+			// }
+			if (i >= 0 && i < img._width && j >= 0 && j < img._height) {
 				if (sqrt(pow(i - x, 2) + pow(j - y, 2)) <= r) {
+					if (x == 2248) {
+						printf("Draw... i:%d, j:%d\n", i, j);
+					}
 					// printf("Draw... i:%d, j:%d\n", i, j);
 					img(i, j, 0) = 255;
 					img(i, j, 1) = 255;
@@ -91,11 +99,11 @@ void plotLine(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 		param_space_point p = filtered[i];
 
 			cimg_forXY(result, x, y) {
-				if (abs(p.rho - (x/8) * cosf(p.theta) - (y/8) * sinf(p.theta)) < 2) {
-					// result(x, y, 0) = 255;
-					// result(x, y, 1) = 0;
-					// result(x, y, 2) = 0;
-					result(x, y) = 255;
+				if (abs(p.rho - (x/resize_fac) * cosf(p.theta) - (y/resize_fac) * sinf(p.theta)) < 1) {
+					result(x, y, 0) = 255;
+					result(x, y, 1) = 0;
+					result(x, y, 2) = 0;
+					// result(x, y) = 255;
 						
 				}
 			}
@@ -158,6 +166,66 @@ void plotLineFast(vector<param_space_point> filtered, CImg<unsigned char>& resul
 
 }
 
+void localFiltering(vector<param_space_point> v, vector<param_space_point>& filtered) {
+
+	for (int i = 0; i < v.size(); i++) {
+
+		bool add = true;
+		param_space_point p = v[i];
+
+		for (int j = 0; j < filtered.size(); j++) {
+
+			param_space_point p0 = filtered[j];
+			float dist = sqrt(pow(p.theta - p0.theta, 2) + pow((p.rho - p0.rho), 2));
+
+			if (dist < 200 ) {
+				add = false;
+			} else {
+				printf("Param dist: %f\n", dist);
+			}
+		}
+
+		if (add) {
+			filtered.insert(filtered.end(), p);
+		}
+
+	}
+
+	printf("Filtered Param points: %d\n", filtered.size());
+
+}
+
+void computeIntersects(vector<param_space_point> filtered, vector<point>& intersects) {
+
+for (int i = 0; i < filtered.size(); i++) {
+
+		for (int j = i + 1; j < filtered.size(); j++) {
+
+			param_space_point p0 = filtered[i], p1 = filtered[j];
+			float a = cos(p0.theta), b = sin(p0.theta), e = p0.rho,
+				c = cos(p1.theta), d = sin(p1.theta), f = p1.rho;
+
+			float det = (a*d-b*c);
+			if (abs(det) > 0.01) {
+			
+				float x = (e*d-b*f)/det;
+				float y = (a*f-e*c)/det;
+
+				point intersect;
+				intersect.x = int(x) * resize_fac;
+				intersect.y = int(y) * resize_fac;
+				plotPoint(intersect.x, intersect.y, result);
+
+				intersects.insert(intersects.end(), intersect);
+			}
+
+		}
+
+	}
+
+	printf("Intersects: %d\n", intersects.size());
+}
+
 vector<param_space_point> v;
 vector<param_space_point> v_debug;
 vector<param_space_point> filtered;
@@ -177,13 +245,7 @@ void hough_line() {
 
 	cimg_forXY(cny, x, y) {
 
-		// int r = cny(x,y,0);
-  //       int g = cny(x,y,1);
-  //       int b = cny(x,y,2);
-  //       double v = (r * 0.2126 + g * 0.7152 + b * 0.0722);
-		double v = cny(x, y);
-       // printf("r: %d, g: %d, b: %d, v: %f\n", r, g, b, v);
-		// exit(-1);
+		int v = cny(x, y);
 
 		if (v > voting_thres) {
 			// printf("x, y: %d %d\n", x, y);
@@ -235,81 +297,24 @@ void hough_line() {
 		else {
 			int rho = rho_norm - pmax;
 			double theta = 2 * PI * th / 360;
-			v_debug.insert(v_debug.end(), param_space_point(rho_norm, th, hough_space(th, rho_norm)));
 			v.insert(v.end(), param_space_point(rho, theta, hough_space(th, rho_norm)));
 		}
 	}
 
 	printf("thres amount: %u\n", v.size());
 
-	// for (int i = 0; i < v_debug.size(); i++) {
-	// 	printf("rho_norm: %d, th: %d, vote: %d\n", v_debug[i].rho, int(v_debug[i].theta), v_debug[i].vote);
-	// 	printf("rho: %d, theta: %f, vote: %d\n", v[i].rho, v[i].theta, v[i].vote);
-	// }
+	localFiltering(v, filtered);
 
-	// for (int i = 0; i < v.size(); i++) {
+	plotLine(filtered, result);
 
-	// 	bool add = true;
-	// 	param_space_point p = v[i];
-
-	// 	for (int j = 0; j < filtered.size(); j++) {
-
-	// 		param_space_point p0 = filtered[j];
-	// 		float dist = sqrt(pow(p.theta - p0.theta, 2) + pow((p.rho - p0.rho), 2));
-
-	// 		if (dist < 0 ) {
-	// 			add = false;
-	// 		} else {
-	// 			printf("Param dist: %f\n", dist);
-	// 		}
-	// 	}
-
-	// 	if (add) {
-	// 		filtered.insert(filtered.end(), p);
-	// 	}
-
-	// }
-
-	// printf("Filtered Param points: %d\n", filtered.size());
-
-	// plotLine(filtered, result);
-	// plotLine(v, cny);
-	plotLine(v, result);
-
-	// for (int i = 0; i < filtered.size(); i++) {
-
-	// 	for (int j = i + 1; j < filtered.size(); j++) {
-
-	// 		param_space_point p0 = filtered[i], p1 = filtered[j];
-	// 		float a = -cos(p0.theta), b = sin(p0.theta), e = p0.rho,
-	// 			c = -cos(p1.theta), d = sin(p1.theta), f = p1.rho;
-
-	// 		float det = (a*d-b*c);
-	// 		if (abs(det) > 0.1) {
-			
-	// 			float x = (e*d-b*f)/det;
-	// 			float y = (a*f-e*c)/det;
-
-	// 			point intersect;
-	// 			intersect.x = int(x);
-	// 			intersect.y = int(y);
-	// 			plotPoint(intersect.x, intersect.y, result);
-
-	// 			intersects.insert(intersects.end(), intersect);
-	// 		}
-
-	// 	}
-
-	// }
-
-	// printf("Intersects: %d\n", intersects.size());
+	computeIntersects(filtered, intersects);
 
 }
 
 int main(int argc, char** argv) {
 
 	char* original_path = "./data/2.jpg";
-	char* canny_path = "./data/2c.jpg";
+	// char* canny_path = "./data/4c.jpg";
 
 	img.assign(original_path);
 	resized.assign(original_path);
@@ -318,7 +323,7 @@ int main(int argc, char** argv) {
 
 	int gfs = 5;
 	double g_sig = 1.5;
-	int thres_lo = 40;
+	int thres_lo = 30;
 	int thres_hi = 55;
 
 
