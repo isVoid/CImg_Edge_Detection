@@ -34,7 +34,7 @@ int thres_hi = 40;
 //Hough Parameter
 int voting_thres = 64;
 float resize_fac = 8;
-float thres_fac = 0.6;
+float thres_fac = 0.7;
 double PI = 3.1415;
 
 struct param_space_point {
@@ -91,58 +91,77 @@ void plotLine(vector<param_space_point> filtered, CImg<unsigned char>& result) {
 		param_space_point p = filtered[i];
 
 			cimg_forXY(result, x, y) {
-				if (abs(p.rho + (x/8) * cosf(p.theta) - (y/8) * sinf(p.theta)) < 2) {
-					result(x, y, 0) = 255;
-					result(x, y, 1) = 0;
-					result(x, y, 2) = 0;
+				if (abs(p.rho - (x/8) * cosf(p.theta) - (y/8) * sinf(p.theta)) < 2) {
+					// result(x, y, 0) = 255;
+					// result(x, y, 1) = 0;
+					// result(x, y, 2) = 0;
+					result(x, y) = 255;
+						
 				}
 			}
 
 			cout << "Finish Plotting Line" << endl;
 
-		// if (abs(sin(p.theta)) > 0.5) {
-		// 	float k = cos(p.theta) / sin(p.theta);
-		// 	float b = p.rho / sin(p.theta);
-		// 	// printf("k: %f, b: %f\n", k, b);
-
-		// 	// cimg_forX(result, x) {
-		// 	for (float x = 0; x < w; x += 0.5){
-		// 		int y = k * x + b;
-		// 		// printf("x: %d, y: %d\n", x, y);
-
-		// 		if (x >= 0 && x <= w && y >= 0 && y <= h){
-		// 			// printf("x: %d, y: %d\n", x, y);
-		// 			// n_plot++;
-
-		// 			result(int(x), y, 0) = 255;
-		// 			result(int(x), y, 1) = 0;
-		// 			result(int(x), y, 2) = 0;	
-		// 		}
-				
-		// 	}
-		// }
-		// else {
-		// 	float k = tan(p.theta);
-		// 	float b = -p.rho / cos(p.theta);
-		// 	// printf("k: %f, b: %f\n", k, b);
-
-		// 	// cimg_forY(result, y) {
-		// 	for (float y = 0; y < h; y += 0.5){
-		// 		int x = k * y + b;
-		// 		// printf("x: %d, y: %d\n", x, y);
-		// 		if (x >= 0 && x <= w && y >= 0 && y <= h){
-		// 			// printf("x: %d, y: %d\n", x, y);
-		// 			// n_plot++;
-
-		// 			result(x, int(y), 0) = 255;
-		// 			result(x, int(y), 1) = 0;
-		// 			result(x, int(y), 2) = 0;	
-		// 		}
-		// 	}
-		// }
-
 	}
 }
+
+void plotLineFast(vector<param_space_point> filtered, CImg<unsigned char>& result) {
+
+	for (int i = 0; i < filtered.size(); i++) {
+
+		param_space_point p = filtered[i];
+		int w = result._width;
+		int h = result._height;
+
+		if (abs(sin(p.theta)) > 0.5) {
+			float k = cos(p.theta) / sin(p.theta);
+			float b = p.rho / sin(p.theta);
+			// printf("k: %f, b: %f\n", k, b);
+
+			// cimg_forX(result, x) {
+			for (float x = 0; x < w; x += 0.5){
+				int y = k * x + b;
+				// printf("x: %d, y: %d\n", x, y);
+
+				if (x >= 0 && x <= w && y >= 0 && y <= h){
+					// printf("x: %d, y: %d\n", x, y);
+					// n_plot++;
+
+					result(int(x), y, 0) = 255;
+					result(int(x), y, 1) = 0;
+					result(int(x), y, 2) = 0;	
+				}
+				
+			}
+		}
+		else {
+			float k = tan(p.theta);
+			float b = -p.rho / cos(p.theta);
+			// printf("k: %f, b: %f\n", k, b);
+
+			// cimg_forY(result, y) {
+			for (float y = 0; y < h; y += 0.5){
+				int x = k * y + b;
+				// printf("x: %d, y: %d\n", x, y);
+				if (x >= 0 && x <= w && y >= 0 && y <= h){
+					// printf("x: %d, y: %d\n", x, y);
+					// n_plot++;
+
+					result(x, int(y), 0) = 255;
+					result(x, int(y), 1) = 0;
+					result(x, int(y), 2) = 0;	
+				}
+			}
+		}
+
+	}
+
+}
+
+vector<param_space_point> v;
+vector<param_space_point> v_debug;
+vector<param_space_point> filtered;
+vector<point> intersects;
 
 void hough_line() {
 
@@ -152,30 +171,31 @@ void hough_line() {
 
 	printf("w:%d, h:%d, pmax:%d\n",w,h,pmax);
 
-	hough_space.assign(hss + 5, hss + 5, 1, 1, 0);
+	hough_space.assign(360, 2 * pmax, 1, 1, 0);
  
 	int max = 0;
 
 	cimg_forXY(cny, x, y) {
 
-		int r = cny(x,y,0);
-        int g = cny(x,y,1);
-        int b = cny(x,y,2);
-        double v = (r * 0.2126 + g * 0.7152 + b * 0.0722);
+		// int r = cny(x,y,0);
+  //       int g = cny(x,y,1);
+  //       int b = cny(x,y,2);
+  //       double v = (r * 0.2126 + g * 0.7152 + b * 0.0722);
+		double v = cny(x, y);
        // printf("r: %d, g: %d, b: %d, v: %f\n", r, g, b, v);
 		// exit(-1);
 
 		if (v > voting_thres) {
 			// printf("x, y: %d %d\n", x, y);
-			for (int th = 0; th < hss; th++) {
+			for (int th = 0; th < 360; th++) {
 
-				float angle = 2*PI * th / hss;
+				float angle = 2*PI * th / 360;
 				float xcos = x * cos(angle);
 				float ysin = y * sin(angle);
-				int rho = -xcos + ysin;
+				float rho = xcos + ysin;
 				
-				int rho_s = rho + pmax;
-				int rho_norm = float(rho_s) * hss / (2 * pmax);
+				float rho_s = rho + pmax;
+				// int rho_norm = float(rho_s) * hss / (2 * pmax);
 
 				// if (rho_norm < 0 || rho_norm >= hss) {
 				// 	cout << "x:" << x << ' ' << "y: " << y << endl;
@@ -190,10 +210,10 @@ void hough_line() {
 
 				// cout << "rho_norm:" << rho_norm << ' ' << "theta:" << th << endl;
 				// printf("rho_norm: %d\n", rho_norm);
-				hough_space(th, rho_norm)++;
+				hough_space(th, int(rho_s))++;
 
-				if (hough_space(th, rho_norm) > max) {
-					max = hough_space(th, rho_norm);
+				if (hough_space(th, rho_s) > max) {
+					max = hough_space(th, rho_s);
 					// printf("max %u\n", max);
 				}
 			}
@@ -206,11 +226,6 @@ void hough_line() {
 	// exit(-1);
 	cout << "max: " << max << endl;
 
-	vector<param_space_point> v;
-	vector<param_space_point> v_debug;
-	vector<param_space_point> filtered;
-	vector<point> intersects;
-
 	int thresh = max * thres_fac;
 	cimg_forXY(hough_space, th, rho_norm) {
 
@@ -218,8 +233,8 @@ void hough_line() {
 			hough_space(th, rho_norm) = 0;
 		}
 		else {
-			int rho = float(rho_norm) * 2 * pmax / hss  - pmax;
-			double theta = 2 * PI * th / hss;
+			int rho = rho_norm - pmax;
+			double theta = 2 * PI * th / 360;
 			v_debug.insert(v_debug.end(), param_space_point(rho_norm, th, hough_space(th, rho_norm)));
 			v.insert(v.end(), param_space_point(rho, theta, hough_space(th, rho_norm)));
 		}
@@ -258,6 +273,7 @@ void hough_line() {
 	// printf("Filtered Param points: %d\n", filtered.size());
 
 	// plotLine(filtered, result);
+	// plotLine(v, cny);
 	plotLine(v, result);
 
 	// for (int i = 0; i < filtered.size(); i++) {
@@ -315,6 +331,7 @@ int main(int argc, char** argv) {
 
 	hough_space.display();
 	result.display();
+	// cny.display();
 
 	return 0;
 }
